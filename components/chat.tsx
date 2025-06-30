@@ -29,6 +29,7 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
+  userId,
 }: {
   id: string;
   initialMessages: Array<UIMessage>;
@@ -37,6 +38,7 @@ export function Chat({
   isReadonly: boolean;
   session: Session;
   autoResume: boolean;
+  userId: string;
 }) {
   const { mutate } = useSWRConfig();
 
@@ -69,6 +71,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
+      userId,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -153,6 +156,7 @@ export function Chat({
               setMessages={setMessages}
               append={append}
               selectedVisibilityType={visibilityType}
+              userId={userId}
             />
           )}
         </form>
@@ -174,6 +178,7 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
         selectedVisibilityType={visibilityType}
+        userId={userId}
       />
     </>
   );
