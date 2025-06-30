@@ -1,7 +1,7 @@
 'use client';
 
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import type { User } from 'next-auth';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -95,7 +95,10 @@ export function getChatHistoryPaginationKey(
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
-  const { id } = useParams();
+  const pathname = usePathname();
+  
+  // Extract chat ID from pathname (e.g., "/chat/abc123" -> "abc123")
+  const id = pathname.startsWith('/chat/') ? pathname.slice(6) : null;
 
   const {
     data: paginatedChatHistories,

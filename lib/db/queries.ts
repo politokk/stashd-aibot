@@ -11,13 +11,8 @@ import { ChatSDKError } from '../errors';
 export type VisibilityType = 'private' | 'public';
 export type ArtifactKind = 'text' | 'code' | 'image' | 'sheet';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Initialize Prisma Client
+const prisma = new PrismaClient();
 
 // Export types for backward compatibility
 export type { User, Chat, Document, Suggestion, Stream, Vote };
@@ -94,13 +89,13 @@ export async function saveChat({
     return await prisma.chat.create({
       data: {
         id,
+        createdAt: new Date(),
         userId,
         title,
         visibility,
       },
     });
   } catch (error) {
-    console.error('Error saving chat:', error);
     throw new ChatSDKError('bad_request:database', 'Failed to save chat');
   }
 }
