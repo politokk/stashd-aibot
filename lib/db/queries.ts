@@ -295,6 +295,25 @@ export async function saveDocument({
   userId: string;
 }) {
   try {
+    // Check if document exists to create a version
+    const existingDocument = await prisma.document.findUnique({
+      where: { id },
+    });
+
+    // If document exists, create a version of the current state before updating
+    if (existingDocument && existingDocument.content) {
+      await prisma.documentVersion.create({
+        data: {
+          id: generateUUID(),
+          documentId: id,
+          userId: existingDocument.userId,
+          title: existingDocument.title,
+          contentRich: { content: existingDocument.content },
+          createdAt: existingDocument.updatedAt || existingDocument.createdAt,
+        },
+      });
+    }
+
     const document = await prisma.document.upsert({
       where: { id },
       update: {
@@ -316,6 +335,25 @@ export async function saveDocument({
   } catch (error) {
     console.error('Error saving document:', error);
     throw new ChatSDKError('bad_request:database', 'Failed to save document');
+  }
+}
+
+export async function getDocumentVersions({
+  documentId,
+}: {
+  documentId: string;
+}) {
+  try {
+    const versions = await prisma.documentVersion.findMany({
+      where: { documentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return versions;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get document versions',
+    );
   }
 }
 
