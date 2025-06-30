@@ -162,3 +162,48 @@
 .suggestion-highlight {
     @apply bg-blue-200 hover:bg-blue-300 dark:hover:bg-blue-400/50 dark:text-blue-50 dark:bg-blue-500/40;
 }
+
+/* Diff View Styling */
+.diff-editor .ProseMirror {
+    @apply outline-none;
+}
+
+.diff-editor .diff-inserted {
+    @apply relative bg-green-500/15 text-green-700 dark:bg-green-500/20 dark:text-green-400 
+           px-1 py-0.5 rounded mx-0.5 font-medium no-underline
+           transition-all duration-200 ease-in-out;
+}
+
+.diff-editor .diff-inserted:hover {
+    @apply bg-green-500/25 dark:bg-green-500/30 shadow-[0_0_0_3px_rgb(34_197_94/0.1)];
+}
+
+.diff-editor .diff-deleted {
+    @apply relative bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400
+           px-1 py-0.5 rounded mx-0.5 line-through opacity-80
+           transition-all duration-200 ease-in-out;
+    text-decoration-thickness: 2px;
+}
+
+.diff-editor .diff-deleted:hover {
+    @apply bg-red-500/25 dark:bg-red-500/30 shadow-[0_0_0_3px_rgb(239_68_68/0.1)];
+}
+
+
+
+/* Animation for diff marks appearing */
+@keyframes diff-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.diff-editor .diff-inserted,
+.diff-editor .diff-deleted {
+    animation: diff-fade-in 0.3s ease-out;
+}
