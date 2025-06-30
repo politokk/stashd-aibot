@@ -1,5 +1,5 @@
 git add .
-git commit -m “messagea”
+git commit -m “suggestions”
 git push origin main
 
 git reset --hard 687da77

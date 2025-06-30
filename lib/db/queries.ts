@@ -295,8 +295,15 @@ export async function saveDocument({
   userId: string;
 }) {
   try {
-    const document = await prisma.document.create({
-      data: {
+    const document = await prisma.document.upsert({
+      where: { id },
+      update: {
+        title,
+        kind,
+        content,
+        updatedAt: new Date(),
+      },
+      create: {
         id,
         title,
         kind,
@@ -307,6 +314,7 @@ export async function saveDocument({
     });
     return [document];
   } catch (error) {
+    console.error('Error saving document:', error);
     throw new ChatSDKError('bad_request:database', 'Failed to save document');
   }
 }

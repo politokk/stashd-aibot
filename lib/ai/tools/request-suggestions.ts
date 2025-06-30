@@ -32,7 +32,7 @@ export const requestSuggestions = ({
       }
 
       const suggestions: Array<
-        Omit<Suggestion, 'userId' | 'createdAt' | 'documentCreatedAt' | 'updatedAt'>
+        Omit<Suggestion, 'userId' | 'createdAt' | 'updatedAt'>
       > = [];
 
       const { elementStream } = streamObject({
@@ -77,10 +77,15 @@ export const requestSuggestions = ({
             userId,
             createdAt: new Date(),
             updatedAt: new Date(),
-            documentCreatedAt: document.createdAt,
           })),
         });
       }
+
+      // Send finish event to complete the stream
+      dataStream.writeData({
+        type: 'finish',
+        content: '',
+      });
 
       return {
         id: documentId,
