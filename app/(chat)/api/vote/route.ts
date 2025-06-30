@@ -68,6 +68,7 @@ export async function PATCH(request: Request) {
   await voteMessage({
     chatId,
     messageId,
+    userId: session.user.id,
     type: type,
   });
 

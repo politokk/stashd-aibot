@@ -92,6 +92,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@playwright/test": "^1.50.1",
+    "@premieroctet/next-admin-generator-prisma": "^1.0.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/d3-scale": "^4.0.8",
     "@types/node": "^22.8.6",
@@ -105,6 +106,9 @@
     "eslint-import-resolver-typescript": "^3.6.3",
     "eslint-plugin-tailwindcss": "^3.17.5",
     "postcss": "^8",
+    "prisma-json-schema-generator": "^5.1.5",
+    "prisma-kysely": "^1.8.0",
+    "prisma-type-generator": "^1.13.0",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"

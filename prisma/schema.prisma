@@ -1,12 +1,555 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters", "fullTextSearchPostgres"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_URL")
+  url      = env("DATABASE_URL")
 }
 
+model Session {
+  id         String   @id
+  user_id    String
+  expires_at DateTime
+  ip_address String?  @db.VarChar(45)
+  user_agent String?
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model OauthAccount {
+  id             String @id @default(cuid())
+  providerId     String
+  providerUserId String
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, providerUserId])
+}
+
+model User {
+  id                    String            @id
+  username              String            @unique
+  password_hash         String?
+  email                 String?           @unique
+  role                  UserRole          @default(USER)
+  uploadLimit           Int               @default(100000000)
+  name                  String?
+  firstName             String?
+  lastName              String?
+  profileImageUrl       String?
+  version               Int               @default(1)
+  stripeCustomerId      String?           @unique
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now())
+  deletedAt             DateTime?
+  defaultAvatarColors   String?
+  avatarType            String?           @default("glass") 
+  avatarSeed            String?  
+  accountType           String?           @default("free")
+  isOnline              Boolean           @default(false)
+  lastSeen              DateTime?
+  
+  // Relations
+  chats                 Chat[]
+  comments              Comment[]
+  discussions           Discussion[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  files                 File[]
+  oauthAccounts         OauthAccount[]
+  pods                  Pod[]
+  sessions              Session[]
+  memories              Memory[]
+  prompts               Prompt[]
+  suggestions           Suggestion[]
+  votes                 Vote[]
+  
+  // Social features
+  sentFriendRequests    Friendship[]      @relation("FriendshipSender")
+  receivedFriendRequests Friendship[]     @relation("FriendshipReceiver")
+  sentNotifications     Notification[]    @relation("NotificationSender")
+  receivedNotifications Notification[]    @relation("NotificationReceiver")
+  documentShares        DocumentShare[]
+  documentSharesGiven   DocumentShare[]   @relation("SharedBy")
+  mentions              Mention[]
+  mentionsMade          Mention[]         @relation("MentionedBy")
+  activities            Activity[]
+
+  @@index([username])
+  @@index([email])
+}
+
+// Friendship system
+model Friendship {
+  id          String           @id @default(cuid())
+  senderId    String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  sender      User             @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User             @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+// Document sharing system
+model DocumentShare {
+  id           String            @id @default(cuid())
+  documentId   String
+  userId       String
+  sharedById   String
+  permission   SharePermission   @default(VIEW)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  
+  document     Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedBy     User              @relation("SharedBy", fields: [sharedById], references: [id], onDelete: Cascade)
+  
+  @@unique([documentId, userId])
+  @@index([documentId])
+  @@index([userId])
+  @@index([sharedById])
+}
+
+// Enhanced notifications system
+model Notification {
+  id          String             @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String?
+  data        Json?              // Flexible data for different notification types
+  isRead      Boolean            @default(false)
+  senderId    String?            // Optional - system notifications don't have a sender
+  receiverId  String
+  resourceId  String?            // ID of related resource (document, comment, etc.)
+  resourceType String?           // Type of resource (document, comment, etc.)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  
+  sender      User?              @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User               @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  @@index([receiverId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Mentions system
+model Mention {
+  id          String      @id @default(cuid())
+  userId      String
+  mentionedById String
+  resourceId  String      // ID of comment, document, etc.
+  resourceType String     // comment, document, discussion
+  content     String?     // Context around the mention
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mentionedBy User        @relation("MentionedBy", fields: [mentionedById], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([mentionedById])
+  @@index([resourceId])
+  @@index([isRead])
+}
+
+// Activity feed system
+model Activity {
+  id          String       @id @default(cuid())
+  userId      String
+  type        ActivityType
+  action      String       // created, updated, shared, etc.
+  resourceId  String?
+  resourceType String?     // document, comment, etc.
+  data        Json?        // Additional context
+  createdAt   DateTime     @default(now())
+  
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Document {
+  id                 String            @id
+  userId             String
+  parentDocumentId   String?
+  title              String?
+  content            String?
+  contentRich        Json?
+  coverImage         String?
+  icon               String?
+  isPublished        Boolean           @default(false)
+  isArchived         Boolean           @default(false)
+  textStyle          TextStyle         @default(DEFAULT)
+  smallText          Boolean           @default(false)
+  fullWidth          Boolean           @default(false)
+  lockPage           Boolean           @default(false)
+  toc                Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  templateId         String?
+  type               String            @default("document")
+  color              String?
+  bgColor            String?
+  contentVector      Json?
+  aiSummary          String?
+  coverFit           String            @default("cover")
+  backgroundGradient String?
+  podId              String?
+  isFavorite         Boolean           @default(false)
+  order              Int               @default(0)
+  status             String?           @default("none")
+  tags               String[]          @default([])
+  iconFilled         Boolean           @default(false)
+  
+  // Enhanced sharing
+  isPublic           Boolean           @default(false)
+  shareToken         String?           @unique // For public sharing
+  
+  // Added from chatbot project
+  kind               ArtifactKind      @default(text)
+  
+  discussions        Discussion[]
+  parentDocument     Document?         @relation("ParentChild", fields: [parentDocumentId], references: [id])
+  children           Document[]        @relation("ParentChild")
+  pod                Pod?              @relation(fields: [podId], references: [id])
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentVersions   DocumentVersion[]
+  files              File[]
+  shares             DocumentShare[]
+  messages           MessageDocument[]
+  suggestions        Suggestion[]
+
+  @@unique([userId, templateId])
+  @@index([userId])
+  @@index([podId])
+  @@index([isPublished])
+  @@index([isPublic])
+  @@index([shareToken])
+}
+
+model DocumentVersion {
+  id          String   @id
+  documentId  String
+  userId      String
+  title       String?
+  contentRich Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Discussion {
+  id                  String    @id
+  documentId          String
+  userId              String
+  documentContent     String
+  documentContentRich Json?
+  isResolved          Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+  comments            Comment[]
+  document            Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id           String     @id
+  userId       String
+  discussionId String
+  content      String
+  contentRich  Json?
+  isEdited     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+  
+  // Enhanced features
+  mentions     String[]   @default([]) // Array of mentioned user IDs
+  
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([discussionId])
+  @@index([userId])
+}
+
+model File {
+  id            String    @id
+  userId        String
+  documentId    String?
+  size          Int
+  url           String
+  appUrl        String
+  type          String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  status        Int       @default(0)
+  convertedUrl  String?
+  extractedText String?
+  summary       String?
+  metadata      Json?
+  convertJobId  String?
+  name          String
+  document      Document? @relation(fields: [documentId], references: [id])
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      MessageFile[]
+}
+
+// Enhanced Chat model with features from chatbot project
+model Chat {
+  id         String    @id @default(cuid())
+  userId     String
+  title      String?
+  visibility VisibilityType @default(private)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages   Message[]
+  votes      Vote[]
+  streams    Stream[]
+
+  @@index([userId])
+}
+
+// Enhanced Message model with features from chatbot project
+model Message {
+  id          String    @id @default(cuid())
+  chatId      String
+  content     String
+  role        String
+  createdAt   DateTime  @default(now())
+  model       String?
+  feedback    String?
+  parentId    String?
+  version     Int       @default(1)
+  
+  // Added from chatbot project
+  parts       Json?     @db.Json    // For structured message parts
+  attachments Json?     @db.Json    // For message attachments
+  
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  parent      Message?  @relation("MessageVersions", fields: [parentId], references: [id])
+  children    Message[] @relation("MessageVersions")
+  votes       Vote[]
+  
+  // Existing relations for attachments
+  documents   MessageDocument[]
+  files       MessageFile[]
+
+  @@index([chatId])
+}
+
+// Enhanced Vote model from chatbot project
+model Vote {
+  chatId    String  // Changed from @db.Uuid to match Chat.id type
+  messageId String  // Changed from @db.Uuid to match Message.id type
+  userId    String  // Added user relation
+  isUpvoted Boolean
+  createdAt DateTime @default(now())
+  
+  chat      Chat    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, messageId, userId])
+  @@index([userId])
+}
+
+// Added from chatbot project
+model Stream {
+  id        String   @id @default(cuid())
+  chatId    String
+  createdAt DateTime @default(now())
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  @@index([chatId])
+}
+
+// Added from chatbot project
+model Suggestion {
+  id           String   @id @default(cuid())
+  documentId   String
+  originalText String
+  suggestedText String
+  description  String?
+  isResolved   Boolean  @default(false)
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([documentId])
+  @@index([userId])
+  @@index([isResolved])
+}
+
+// Junction table for Message-Document many-to-many relation
+model MessageDocument {
+  id         String   @id @default(cuid())
+  messageId  String
+  documentId String
+  createdAt  DateTime @default(now())
+  
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, documentId])
+  @@index([messageId])
+  @@index([documentId])
+}
+
+// Junction table for Message-File many-to-many relation  
+model MessageFile {
+  id        String   @id @default(cuid())
+  messageId String
+  fileId    String
+  createdAt DateTime @default(now())
+  
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, fileId])
+  @@index([messageId])
+  @@index([fileId])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+model Pod {
+  id        String     @id
+  name      String
+  userId    String
+  privacy   PodPrivacy @default(PRIVATE)
+  seed      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  bgColor   String?
+  color     String?
+  icon      String?
+  documents Document[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Memory {
+  id        Int      @id @default(autoincrement())
+  memory    String   @db.Text
+  status    String   @default("active") // "active" or "inactive"
+  order     Int?     // For drag and drop ordering
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+model Prompt {
+  id          String      @id @default(cuid())
+  userId      String
+  title       String
+  prompt      String      @db.Text
+  icon        String?
+  category    String?     @default("General")
+  status      PromptStatus @default(ACTIVE)
+  isPublic    Boolean     @default(false)
+  tags        String[]    @default([])
+  usageCount  Int         @default(0)
+  metadata    Json?       // Stores display type and other metadata
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([userId, category])
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum TextStyle {
+  DEFAULT
+  SERIF
+  MONO
+}
+
+enum PodPrivacy {
+  PUBLIC
+  PRIVATE
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum SharePermission {
+  VIEW
+  COMMENT
+  EDIT
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  DOCUMENT_SHARED
+  DOCUMENT_COMMENTED
+  MENTION
+  SYSTEM
+}
+
+enum ActivityType {
+  DOCUMENT
+  COMMENT
+  FRIENDSHIP
+  SHARE
+}
+
+enum MemoryStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum PromptStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+// Added from chatbot project
 enum VisibilityType {
   private
   public
@@ -17,83 +560,4 @@ enum ArtifactKind {
   code
   image
   sheet
-}
-
-model User {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email       String       @unique @db.VarChar(64)
-  password    String?      @db.VarChar(64)
-  chats       Chat[]
-  documents   Document[]
-  suggestions Suggestion[]
-}
-
-model Chat {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt  DateTime     @db.Timestamp(6)
-  userId     String       @db.Uuid
-  title      String
-  visibility String       @default("private") @db.VarChar
-  user       User         @relation(fields: [userId], references: [id])
-  messages   Message[]
-  votes      Vote[]
-  streams    Stream[]
-}
-
-model Message {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  chatId      String   @db.Uuid
-  role        String   @db.VarChar
-  parts       Json     @db.Json
-  attachments Json     @db.Json
-  createdAt   DateTime @db.Timestamp(6)
-  chat        Chat     @relation(fields: [chatId], references: [id])
-  votes       Vote[]
-
-  @@map("Message_v2")
-}
-
-model Vote {
-  chatId    String  @db.Uuid
-  messageId String  @db.Uuid
-  isUpvoted Boolean
-  chat      Chat    @relation(fields: [chatId], references: [id])
-  message   Message @relation(fields: [messageId], references: [id])
-
-  @@id([chatId, messageId])
-  @@map("Vote_v2")
-}
-
-model Document {
-  id          String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt   DateTime     @db.Timestamp(6)
-  title       String
-  content     String?
-  kind        String       @default("text") @map("text") @db.VarChar
-  userId      String       @db.Uuid
-  user        User         @relation(fields: [userId], references: [id])
-  suggestions Suggestion[]
-
-  @@id([id, createdAt])
-}
-
-model Suggestion {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  documentId        String   @db.Uuid
-  documentCreatedAt DateTime @db.Timestamp(6)
-  originalText      String
-  suggestedText     String
-  description       String?
-  isResolved        Boolean  @default(false)
-  userId            String   @db.Uuid
-  createdAt         DateTime @db.Timestamp(6)
-  document          Document @relation(fields: [documentId, documentCreatedAt], references: [id, createdAt])
-  user              User     @relation(fields: [userId], references: [id])
-}
-
-model Stream {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  chatId    String   @db.Uuid
-  createdAt DateTime @db.Timestamp(6)
-  chat      Chat     @relation(fields: [chatId], references: [id])
 }

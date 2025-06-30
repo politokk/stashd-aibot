@@ -31,25 +31,42 @@ export async function getUser(email: string): Promise<Array<User>> {
 
 export async function createUser(email: string, password: string) {
   const hashedPassword = generateHashedPassword(password);
+  const userId = generateUUID();
+  const username = email.split('@')[0] + '_' + Date.now(); // Generate username from email
 
   try {
-    return await prisma.user.create({ data: { email, password: hashedPassword } });
+    return await prisma.user.create({ 
+      data: { 
+        id: userId,
+        username,
+        email, 
+        password_hash: hashedPassword // Note: field name is password_hash, not password
+      } 
+    });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to create user');
   }
 }
 
 export async function createGuestUser() {
-  const email = `guest-${Date.now()}`;
-  const password = generateHashedPassword(generateUUID());
+  const userId = generateUUID();
+  const email = `guest-${Date.now()}@example.com`;
+  const username = `guest_${Date.now()}`;
+  const hashedPassword = generateHashedPassword(generateUUID());
 
   try {
     const guestUser = await prisma.user.create({
-      data: { email, password },
-      select: { id: true, email: true },
+      data: { 
+        id: userId,
+        username,
+        email, 
+        password_hash: hashedPassword // Note: field name is password_hash, not password
+      },
+      select: { id: true, email: true, username: true },
     });
     return [guestUser];
   } catch (error) {
+    console.error('Error creating guest user:', error);
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to create guest user',
@@ -211,26 +228,30 @@ export async function getMessagesByChatId({ id }: { id: string }) {
 export async function voteMessage({
   chatId,
   messageId,
+  userId,
   type,
 }: {
   chatId: string;
   messageId: string;
+  userId: string;
   type: 'up' | 'down';
 }) {
   try {
     const existingVote = await prisma.vote.findFirst({
       where: { 
         chatId,
-        messageId 
+        messageId,
+        userId
       },
     });
 
     if (existingVote) {
       return await prisma.vote.update({
         where: { 
-          chatId_messageId: {
+          chatId_messageId_userId: {
             chatId,
-            messageId
+            messageId,
+            userId
           }
         },
         data: { isUpvoted: type === 'up' },
@@ -240,6 +261,7 @@ export async function voteMessage({
       data: {
         chatId,
         messageId,
+        userId,
         isUpvoted: type === 'up',
       },
     });
@@ -332,7 +354,7 @@ export async function deleteDocumentsByIdAfterTimestamp({
     await prisma.suggestion.deleteMany({
       where: {
         documentId: id,
-        documentCreatedAt: { gt: timestamp },
+        createdAt: { gt: timestamp },
       },
     });
 

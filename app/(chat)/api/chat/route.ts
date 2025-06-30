@@ -48,12 +48,12 @@ function getStreamContext() {
         waitUntil: after,
       });
     } catch (error: any) {
-      if (error.message.includes('REDIS_URL')) {
+      if (error.message.includes('REDIS_URL') || error.code === 'ERR_INVALID_URL') {
         console.log(
-          ' > Resumable streams are disabled due to missing REDIS_URL',
+          ' > Resumable streams are disabled due to missing or invalid REDIS_URL',
         );
       } else {
-        console.error(error);
+        console.error('Error creating resumable stream context:', error);
       }
     }
   }
@@ -137,6 +137,11 @@ export async function POST(request: Request) {
           parts: message.parts,
           attachments: (message.experimental_attachments ?? []) as any,
           createdAt: new Date(),
+          content: message.content,
+          model: null,
+          feedback: null,
+          parentId: null,
+          version: 1,
         },
       ],
     });
@@ -199,6 +204,11 @@ export async function POST(request: Request) {
                       attachments:
                         (assistantMessage.experimental_attachments ?? []) as any,
                       createdAt: new Date(),
+                      content: assistantMessage.content,
+                      model: null,
+                      feedback: null,
+                      parentId: null,
+                      version: 1,
                     },
                   ],
                 });
