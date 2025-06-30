@@ -80,7 +80,6 @@ function PureChatHeader({
           target="_noblank"
         >
           <VercelIcon size={16} />
-          Deploy with Vercel
         </Link>
       </Button>
     </header>
