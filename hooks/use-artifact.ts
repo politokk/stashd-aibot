@@ -1,22 +1,24 @@
 'use client';
 
-import useSWR from 'swr';
-import { UIArtifact } from '@/components/artifact';
 import { useCallback, useMemo } from 'react';
 
+import type { UIArtifact } from '@/components/artifact';
+
+import useSWR from 'swr';
+
 export const initialArtifactData: UIArtifact = {
-  documentId: 'init',
-  content: '',
-  kind: 'text',
-  title: '',
-  status: 'idle',
-  isVisible: false,
   boundingBox: {
-    top: 0,
-    left: 0,
-    width: 0,
     height: 0,
+    left: 0,
+    top: 0,
+    width: 0,
   },
+  content: '',
+  documentId: 'init',
+  isVisible: false,
+  kind: 'text',
+  status: 'idle',
+  title: '',
 };
 
 type Selector<T> = (state: UIArtifact) => T;
@@ -28,6 +30,7 @@ export function useArtifactSelector<Selected>(selector: Selector<Selected>) {
 
   const selectedValue = useMemo(() => {
     if (!localArtifact) return selector(initialArtifactData);
+
     return selector(localArtifact);
   }, [localArtifact, selector]);
 
@@ -45,12 +48,13 @@ export function useArtifact() {
 
   const artifact = useMemo(() => {
     if (!localArtifact) return initialArtifactData;
+
     return localArtifact;
   }, [localArtifact]);
 
   const setArtifact = useCallback(
-    (updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact)) => {
-      setLocalArtifact((currentArtifact) => {
+    (updaterFn: ((currentArtifact: UIArtifact) => UIArtifact) | UIArtifact) => {
+      void setLocalArtifact((currentArtifact) => {
         const artifactToUpdate = currentArtifact || initialArtifactData;
 
         if (typeof updaterFn === 'function') {
@@ -76,8 +80,8 @@ export function useArtifact() {
   return useMemo(
     () => ({
       artifact,
-      setArtifact,
       metadata: localArtifactMetadata,
+      setArtifact,
       setMetadata: setLocalArtifactMetadata,
     }),
     [artifact, setArtifact, localArtifactMetadata, setLocalArtifactMetadata],

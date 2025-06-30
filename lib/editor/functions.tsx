@@ -1,20 +1,22 @@
 'use client';
 
-import { defaultMarkdownSerializer } from 'prosemirror-markdown';
-import { DOMParser, type Node } from 'prosemirror-model';
-import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { renderToString } from 'react-dom/server';
+
+import { defaultMarkdownSerializer } from 'prosemirror-markdown';
+import { type Node, DOMParser } from 'prosemirror-model';
+import { type EditorView, Decoration, DecorationSet } from 'prosemirror-view';
 
 import { Markdown } from '@/components/markdown';
 
 import { documentSchema } from './config';
-import { createSuggestionWidget, type UISuggestion } from './suggestions';
+import { type UISuggestion, createSuggestionWidget } from './suggestions';
 
 export const buildDocumentFromContent = (content: string) => {
   const parser = DOMParser.fromSchema(documentSchema);
   const stringFromMarkdown = renderToString(<Markdown>{content}</Markdown>);
   const tempContainer = document.createElement('div');
   tempContainer.innerHTML = stringFromMarkdown;
+
   return parser.parse(tempContainer);
 };
 
@@ -23,10 +25,10 @@ export const buildContentFromDocument = (document: Node) => {
 };
 
 export const createDecorations = (
-  suggestions: Array<UISuggestion>,
+  suggestions: UISuggestion[],
   view: EditorView,
 ) => {
-  const decorations: Array<Decoration> = [];
+  const decorations: Decoration[] = [];
 
   for (const suggestion of suggestions) {
     decorations.push(
@@ -41,13 +43,11 @@ export const createDecorations = (
           type: 'highlight',
         },
       ),
-    );
-
-    decorations.push(
       Decoration.widget(
         suggestion.selectionStart,
         (view) => {
           const { dom } = createSuggestionWidget(suggestion, view);
+
           return dom;
         },
         {
