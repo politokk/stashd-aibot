@@ -279,8 +279,8 @@ function PureArtifact({
 
           {!isMobile && (
             <motion.div
-              className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
-              initial={{ opacity: 0, x: 10, scale: 1 }}
+              className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0 ml-auto"
+              initial={{ opacity: 0, x: -10, scale: 1 }}
               animate={{
                 opacity: 1,
                 x: 0,
@@ -346,7 +346,7 @@ function PureArtifact({
           )}
 
           <motion.div
-            className="fixed dark:bg-muted bg-background h-dvh flex flex-col overflow-y-scroll md:border-l dark:border-zinc-700 border-zinc-200"
+            className="fixed dark:bg-muted bg-background h-dvh flex flex-col overflow-y-scroll md:border-r dark:border-zinc-700 border-zinc-200"
             initial={
               isMobile
                 ? {
@@ -385,7 +385,7 @@ function PureArtifact({
                   }
                 : {
                     opacity: 1,
-                    x: 400,
+                    x: 0,
                     y: 0,
                     height: windowHeight,
                     width: windowWidth
