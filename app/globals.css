@@ -169,41 +169,121 @@
 }
 
 .diff-editor .diff-inserted {
-    @apply relative bg-green-500/15 text-green-700 dark:bg-green-500/20 dark:text-green-400 
-           px-1 py-0.5 rounded mx-0.5 font-medium no-underline
-           transition-all duration-200 ease-in-out;
+    @apply relative bg-gradient-to-r from-green-500/10 to-green-500/15 
+           text-green-700 dark:from-green-500/15 dark:to-green-500/20 dark:text-green-400 
+           px-1.5 py-0.5 rounded-md mx-0.5 font-medium no-underline
+           transition-all duration-200 ease-in-out
+           border border-green-500/20 dark:border-green-500/30;
+}
+
+.diff-editor .diff-inserted::before {
+    content: '+';
+    @apply absolute -left-4 top-0 text-xs text-green-600 dark:text-green-400 font-mono;
 }
 
 .diff-editor .diff-inserted:hover {
-    @apply bg-green-500/25 dark:bg-green-500/30 shadow-[0_0_0_3px_rgb(34_197_94/0.1)];
+    @apply bg-gradient-to-r from-green-500/20 to-green-500/25 
+           dark:from-green-500/25 dark:to-green-500/30 
+           shadow-[0_0_0_3px_rgb(34_197_94/0.1)] 
+           border-green-500/30 dark:border-green-500/40
+           scale-[1.02];
 }
 
 .diff-editor .diff-deleted {
-    @apply relative bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400
-           px-1 py-0.5 rounded mx-0.5 line-through opacity-80
-           transition-all duration-200 ease-in-out;
+    @apply relative bg-gradient-to-r from-red-500/10 to-red-500/15 
+           text-red-600 dark:from-red-500/15 dark:to-red-500/20 dark:text-red-400
+           px-1.5 py-0.5 rounded-md mx-0.5 line-through opacity-80
+           transition-all duration-200 ease-in-out
+           border border-red-500/20 dark:border-red-500/30;
     text-decoration-thickness: 2px;
+    text-decoration-color: rgba(239, 68, 68, 0.5);
+}
+
+.diff-editor .diff-deleted::before {
+    content: '-';
+    @apply absolute -left-4 top-0 text-xs text-red-600 dark:text-red-400 font-mono;
 }
 
 .diff-editor .diff-deleted:hover {
-    @apply bg-red-500/25 dark:bg-red-500/30 shadow-[0_0_0_3px_rgb(239_68_68/0.1)];
+    @apply bg-gradient-to-r from-red-500/20 to-red-500/25 
+           dark:from-red-500/25 dark:to-red-500/30 
+           shadow-[0_0_0_3px_rgb(239_68_68/0.1)]
+           border-red-500/30 dark:border-red-500/40
+           opacity-90;
 }
 
+/* Better spacing for consecutive changes */
+.diff-editor .diff-inserted + .diff-inserted,
+.diff-editor .diff-deleted + .diff-deleted {
+    @apply ml-0.5;
+}
 
+/* Group consecutive changes visually */
+.diff-editor .diff-inserted + .diff-inserted {
+    @apply rounded-l-sm border-l-0;
+}
+
+.diff-editor .diff-deleted + .diff-deleted {
+    @apply rounded-l-sm border-l-0;
+}
+
+/* First in a group */
+.diff-editor .diff-inserted:not(.diff-inserted + .diff-inserted),
+.diff-editor .diff-deleted:not(.diff-deleted + .diff-deleted) {
+    @apply rounded-r-sm;
+}
+
+/* Ensure proper contrast in prose content */
+.diff-editor.prose .diff-inserted,
+.diff-editor.prose .diff-deleted {
+    font-family: inherit;
+}
 
 /* Animation for diff marks appearing */
 @keyframes diff-fade-in {
-    from {
+    0% {
         opacity: 0;
-        transform: scale(0.95);
+        transform: translateY(2px) scale(0.98);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: scale(1);
+        transform: translateY(0) scale(1);
     }
 }
 
 .diff-editor .diff-inserted,
 .diff-editor .diff-deleted {
     animation: diff-fade-in 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+/* Stagger animation for multiple changes */
+.diff-editor .diff-inserted:nth-child(odd),
+.diff-editor .diff-deleted:nth-child(odd) {
+    animation-delay: 0.05s;
+}
+
+.diff-editor .diff-inserted:nth-child(even),
+.diff-editor .diff-deleted:nth-child(even) {
+    animation-delay: 0.1s;
+}
+
+/* Improve readability with better paragraph spacing when changes are present */
+.diff-editor .ProseMirror p:has(.diff-inserted),
+.diff-editor .ProseMirror p:has(.diff-deleted) {
+    @apply my-6;
+}
+
+/* Add subtle background to paragraphs with changes */
+.diff-editor .ProseMirror p:has(.diff-inserted) {
+    @apply relative pl-6 border-l-2 border-green-500/20 dark:border-green-500/30;
+}
+
+.diff-editor .ProseMirror p:has(.diff-deleted) {
+    @apply relative pl-6 border-l-2 border-red-500/20 dark:border-red-500/30;
+}
+
+/* Mixed changes in same paragraph */
+.diff-editor .ProseMirror p:has(.diff-inserted):has(.diff-deleted) {
+    @apply border-l-2 border-amber-500/20 dark:border-amber-500/30;
 }
