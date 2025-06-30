@@ -84,14 +84,22 @@ export function DocumentPreview({
     return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
   }
 
-  const document: Document | null = artifact.status === 'streaming'
+  const document: Document | null = previewDocument
+    ? previewDocument
+    : artifact.status === 'streaming'
       ? {
-          id: artifact.documentId,
-          userId: 'noop',
-          parentDocumentId: null,
           title: artifact.title,
+          kind: artifact.kind,
           content: artifact.content,
+          id: artifact.documentId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'noop',
+          type: 'document',
+          parentDocumentId: null,
           contentRich: null,
+          shareToken: null,
+          status: artifact.status,
           coverImage: null,
           icon: null,
           isPublished: false,
@@ -101,10 +109,7 @@ export function DocumentPreview({
           fullWidth: false,
           lockPage: false,
           toc: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
           templateId: null,
-          type: 'document',
           color: null,
           bgColor: null,
           contentVector: null,
@@ -114,12 +119,9 @@ export function DocumentPreview({
           podId: null,
           isFavorite: false,
           order: 0,
-          status: null,
           tags: [],
           iconFilled: false,
           isPublic: false,
-          shareToken: null,
-          kind: artifact.kind,
         }
       : null;
 
@@ -133,8 +135,8 @@ export function DocumentPreview({
         setArtifact={setArtifact}
       />
       <DocumentHeader
-        title={document.title ?? ''}
-        kind={document.kind as ArtifactKind}
+          title={document.title ?? ''}
+          kind={document.kind as ArtifactKind}
         isStreaming={artifact.status === 'streaming'}
       />
       <DocumentContent document={document} />
@@ -309,3 +311,5 @@ const DocumentContent = ({ document }: { document: Document }) => {
     </div>
   );
 };
+
+  
