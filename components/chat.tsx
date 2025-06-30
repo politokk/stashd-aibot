@@ -119,6 +119,20 @@ export function Chat({
     setMessages,
   });
 
+  // Invalidate sidebar history cache immediately when a message starts being sent
+  // This ensures new chats appear in the sidebar and are marked as active right away
+  useEffect(() => {
+    if (status === 'submitted') {
+      mutate(unstable_serialize(getChatHistoryPaginationKey));
+    }
+  }, [status, mutate]);
+
+  // Invalidate sidebar history cache when chat ID changes (navigation to new chat)
+  // This ensures the sidebar updates when switching between chats
+  useEffect(() => {
+    mutate(unstable_serialize(getChatHistoryPaginationKey));
+  }, [id, mutate]);
+
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
