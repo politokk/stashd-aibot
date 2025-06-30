@@ -10,6 +10,7 @@ interface SuggestedActionsProps {
   chatId: string;
   append: UseChatHelpers['append'];
   selectedVisibilityType: VisibilityType;
+  userId: string;
 }
 
 function PureSuggestedActions({

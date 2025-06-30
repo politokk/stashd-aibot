@@ -28,6 +28,8 @@ type NewVoteInsert = {
   messageId: string;
   chatId: string;
   isUpvoted: boolean;
+  userId: string;
+  createdAt: Date;
 };
 
 interface MessageDeprecatedContentPart {
@@ -36,6 +38,7 @@ interface MessageDeprecatedContentPart {
 }
 
 type MessageDeprecated = {
+  userId: string;
   id: string;
   chatId: string;
   role: string;
@@ -101,14 +104,14 @@ async function migrateMessages() {
 
     // Get deprecated messages (assuming they exist in a Message table without _v2 suffix)
     const allMessages = await prisma.$queryRaw<MessageDeprecated[]>`
-      SELECT id, "chatId", role, content, "createdAt" 
+      SELECT id, "chatId", role, content, "createdAt", "userId" 
       FROM "Message" 
       WHERE "chatId" = ANY(${chatIds})
     `;
 
     // Get deprecated votes (assuming they exist in a Vote table without _v2 suffix)  
-    const allVotes = await prisma.$queryRaw<{ messageId: string; chatId: string; isUpvoted: boolean }[]>`
-      SELECT "messageId", "chatId", "isUpvoted"
+    const allVotes = await prisma.$queryRaw<{ messageId: string; chatId: string; isUpvoted: boolean; userId: string; createdAt: Date }[]>`
+      SELECT "messageId", "chatId", "isUpvoted", "userId", "createdAt"
       FROM "Vote"
       WHERE "chatId" = ANY(${chatIds})
     `;
@@ -205,6 +208,8 @@ async function migrateMessages() {
                   messageId: msg.id,
                   chatId: msg.chatId,
                   isUpvoted: voteByMessage.isUpvoted,
+                  userId: voteByMessage.userId,
+                  createdAt: voteByMessage.createdAt,
                 });
               }
             }
@@ -227,6 +232,7 @@ async function migrateMessages() {
             role: msg.role,
             attachments: msg.attachments as any,
             createdAt: msg.createdAt,
+            content: JSON.stringify(msg.parts),
           })),
         });
       }
@@ -237,7 +243,12 @@ async function migrateMessages() {
       const voteBatch = newVotesToInsert.slice(j, j + INSERT_BATCH_SIZE);
       if (voteBatch.length > 0) {
         await prisma.vote.createMany({
-          data: voteBatch,
+          data: voteBatch.map((vote) => ({
+            messageId: vote.messageId,
+            chatId: vote.chatId,
+            isUpvoted: vote.isUpvoted,
+            userId: vote.userId,
+          })),
         });
       }
     }
