@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+enum VisibilityType {
+  private
+  public
+}
+
+enum ArtifactKind {
+  text
+  code
+  image
+  sheet
+}
+
+model User {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String       @unique @db.VarChar(64)
+  password    String?      @db.VarChar(64)
+  chats       Chat[]
+  documents   Document[]
+  suggestions Suggestion[]
+}
+
+model Chat {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt  DateTime     @db.Timestamp(6)
+  userId     String       @db.Uuid
+  title      String
+  visibility String       @default("private") @db.VarChar
+  user       User         @relation(fields: [userId], references: [id])
+  messages   Message[]
+  votes      Vote[]
+  streams    Stream[]
+}
+
+model Message {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatId      String   @db.Uuid
+  role        String   @db.VarChar
+  parts       Json     @db.Json
+  attachments Json     @db.Json
+  createdAt   DateTime @db.Timestamp(6)
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  votes       Vote[]
+
+  @@map("Message_v2")
+}
+
+model Vote {
+  chatId    String  @db.Uuid
+  messageId String  @db.Uuid
+  isUpvoted Boolean
+  chat      Chat    @relation(fields: [chatId], references: [id])
+  message   Message @relation(fields: [messageId], references: [id])
+
+  @@id([chatId, messageId])
+  @@map("Vote_v2")
+}
+
+model Document {
+  id          String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime     @db.Timestamp(6)
+  title       String
+  content     String?
+  kind        String       @default("text") @map("text") @db.VarChar
+  userId      String       @db.Uuid
+  user        User         @relation(fields: [userId], references: [id])
+  suggestions Suggestion[]
+
+  @@id([id, createdAt])
+}
+
+model Suggestion {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId        String   @db.Uuid
+  documentCreatedAt DateTime @db.Timestamp(6)
+  originalText      String
+  suggestedText     String
+  description       String?
+  isResolved        Boolean  @default(false)
+  userId            String   @db.Uuid
+  createdAt         DateTime @db.Timestamp(6)
+  document          Document @relation(fields: [documentId, documentCreatedAt], references: [id, createdAt])
+  user              User     @relation(fields: [userId], references: [id])
+}
+
+model Stream {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatId    String   @db.Uuid
+  createdAt DateTime @db.Timestamp(6)
+  chat      Chat     @relation(fields: [chatId], references: [id])
+}

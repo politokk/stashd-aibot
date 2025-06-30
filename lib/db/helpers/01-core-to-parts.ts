@@ -1,15 +1,5 @@
 import { config } from 'dotenv';
-import postgres from 'postgres';
-import {
-  chat,
-  message,
-  type MessageDeprecated,
-  messageDeprecated,
-  vote,
-  voteDeprecated,
-} from '../schema';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { inArray } from 'drizzle-orm';
+import { PrismaClient } from '@prisma/client';
 import { appendResponseMessages, type UIMessage } from 'ai';
 
 config({
@@ -20,8 +10,7 @@ if (!process.env.POSTGRES_URL) {
   throw new Error('POSTGRES_URL environment variable is not set');
 }
 
-const client = postgres(process.env.POSTGRES_URL);
-const db = drizzle(client);
+const prisma = new PrismaClient();
 
 const BATCH_SIZE = 100; // Process 100 chats at a time
 const INSERT_BATCH_SIZE = 1000; // Insert 1000 messages at a time
@@ -45,6 +34,14 @@ interface MessageDeprecatedContentPart {
   type: string;
   content: unknown;
 }
+
+type MessageDeprecated = {
+  id: string;
+  chatId: string;
+  role: string;
+  content: any;
+  createdAt: Date;
+};
 
 function getMessageRank(message: MessageDeprecated): number {
   if (
@@ -93,7 +90,8 @@ function sanitizeParts<T extends { type: string; [k: string]: any }>(
 }
 
 async function migrateMessages() {
-  const chats = await db.select().from(chat);
+  // Get all chats
+  const chats = await prisma.chat.findMany();
 
   let processedCount = 0;
 
@@ -101,15 +99,19 @@ async function migrateMessages() {
     const chatBatch = chats.slice(i, i + BATCH_SIZE);
     const chatIds = chatBatch.map((chat) => chat.id);
 
-    const allMessages = await db
-      .select()
-      .from(messageDeprecated)
-      .where(inArray(messageDeprecated.chatId, chatIds));
+    // Get deprecated messages (assuming they exist in a Message table without _v2 suffix)
+    const allMessages = await prisma.$queryRaw<MessageDeprecated[]>`
+      SELECT id, "chatId", role, content, "createdAt" 
+      FROM "Message" 
+      WHERE "chatId" = ANY(${chatIds})
+    `;
 
-    const allVotes = await db
-      .select()
-      .from(voteDeprecated)
-      .where(inArray(voteDeprecated.chatId, chatIds));
+    // Get deprecated votes (assuming they exist in a Vote table without _v2 suffix)  
+    const allVotes = await prisma.$queryRaw<{ messageId: string; chatId: string; isUpvoted: boolean }[]>`
+      SELECT "messageId", "chatId", "isUpvoted"
+      FROM "Vote"
+      WHERE "chatId" = ANY(${chatIds})
+    `;
 
     const newMessagesToInsert: NewMessageInsert[] = [];
     const newVotesToInsert: NewVoteInsert[] = [];
@@ -213,31 +215,36 @@ async function migrateMessages() {
       }
     }
 
+    // Insert messages in batches
     for (let j = 0; j < newMessagesToInsert.length; j += INSERT_BATCH_SIZE) {
       const messageBatch = newMessagesToInsert.slice(j, j + INSERT_BATCH_SIZE);
       if (messageBatch.length > 0) {
-        const validMessageBatch = messageBatch.map((msg) => ({
-          id: msg.id,
-          chatId: msg.chatId,
-          parts: msg.parts,
-          role: msg.role,
-          attachments: msg.attachments,
-          createdAt: msg.createdAt,
-        }));
-
-        await db.insert(message).values(validMessageBatch);
+        await prisma.message.createMany({
+          data: messageBatch.map((msg) => ({
+            id: msg.id,
+            chatId: msg.chatId,
+            parts: msg.parts as any,
+            role: msg.role,
+            attachments: msg.attachments as any,
+            createdAt: msg.createdAt,
+          })),
+        });
       }
     }
 
+    // Insert votes in batches
     for (let j = 0; j < newVotesToInsert.length; j += INSERT_BATCH_SIZE) {
       const voteBatch = newVotesToInsert.slice(j, j + INSERT_BATCH_SIZE);
       if (voteBatch.length > 0) {
-        await db.insert(vote).values(voteBatch);
+        await prisma.vote.createMany({
+          data: voteBatch,
+        });
       }
     }
   }
 
   console.info(`Migration completed: ${processedCount} chats processed`);
+  await prisma.$disconnect();
 }
 
 migrateMessages()

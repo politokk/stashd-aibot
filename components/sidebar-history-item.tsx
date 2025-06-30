@@ -1,4 +1,4 @@
-import type { Chat } from '@/lib/db/schema';
+import type { Chat } from '@/lib/db/queries';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -25,6 +25,7 @@ import {
 } from './icons';
 import { memo } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { VisibilityType } from '@/lib/db/queries';
 
 const PureChatItem = ({
   chat,
@@ -39,7 +40,7 @@ const PureChatItem = ({
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
-    initialVisibilityType: chat.visibility,
+    initialVisibilityType: chat.visibility as VisibilityType,
   });
 
   return (

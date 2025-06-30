@@ -6,7 +6,7 @@ import { Chat } from '@/components/chat';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
-import type { DBMessage } from '@/lib/db/schema';
+import type { DBMessage, VisibilityType } from '@/lib/db/queries';
 import type { Attachment, UIMessage } from 'ai';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
@@ -47,7 +47,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       content: '',
       createdAt: message.createdAt,
       experimental_attachments:
-        (message.attachments as Array<Attachment>) ?? [],
+        (message.attachments as unknown as Array<Attachment>) ?? [],
     }));
   }
 
@@ -61,7 +61,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           id={chat.id}
           initialMessages={convertToUIMessages(messagesFromDb)}
           initialChatModel={DEFAULT_CHAT_MODEL}
-          initialVisibilityType={chat.visibility}
+          initialVisibilityType={chat.visibility as VisibilityType}
           isReadonly={session?.user?.id !== chat.userId}
           session={session}
           autoResume={true}
@@ -77,7 +77,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         id={chat.id}
         initialMessages={convertToUIMessages(messagesFromDb)}
         initialChatModel={chatModelFromCookie.value}
-        initialVisibilityType={chat.visibility}
+        initialVisibilityType={chat.visibility as VisibilityType}
         isReadonly={session?.user?.id !== chat.userId}
         session={session}
         autoResume={true}

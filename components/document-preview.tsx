@@ -11,7 +11,7 @@ import {
 import { ArtifactKind, UIArtifact } from './artifact';
 import { FileIcon, FullscreenIcon, ImageIcon, LoaderIcon } from './icons';
 import { cn, fetcher } from '@/lib/utils';
-import { Document } from '@/lib/db/schema';
+import { Document } from '@/lib/db/queries';
 import { InlineDocumentSkeleton } from './document-skeleton';
 import useSWR from 'swr';
 import { Editor } from './text-editor';
@@ -108,7 +108,7 @@ export function DocumentPreview({
       />
       <DocumentHeader
         title={document.title}
-        kind={document.kind}
+        kind={document.kind as ArtifactKind}
         isStreaming={artifact.status === 'streaming'}
       />
       <DocumentContent document={document} />
