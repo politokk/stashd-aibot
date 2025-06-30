@@ -4,12 +4,14 @@ import {
   deleteDocumentsByIdAfterTimestamp,
   getDocumentsById,
   saveDocument,
+  getDocumentVersions,
 } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+  const versions = searchParams.get('versions');
 
   if (!id) {
     return new ChatSDKError(
@@ -22,6 +24,21 @@ export async function GET(request: Request) {
 
   if (!session?.user) {
     return new ChatSDKError('unauthorized:document').toResponse();
+  }
+
+  // If versions parameter is present, return document versions
+  if (versions === 'true') {
+    const documentVersions = await getDocumentVersions({ documentId: id });
+    
+    // Check if user has access to the document
+    const documents = await getDocumentsById({ id });
+    const [document] = documents;
+    
+    if (!document || document.userId !== session.user.id) {
+      return new ChatSDKError('forbidden:document').toResponse();
+    }
+    
+    return Response.json(documentVersions, { status: 200 });
   }
 
   const documents = await getDocumentsById({ id });

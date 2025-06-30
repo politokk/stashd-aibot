@@ -68,6 +68,7 @@ function PureArtifact({
   votes,
   isReadonly,
   selectedVisibilityType,
+  userId,
 }: {
   chatId: string;
   input: string;
@@ -84,6 +85,7 @@ function PureArtifact({
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   selectedVisibilityType: VisibilityType;
+  userId: string;
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
@@ -93,7 +95,7 @@ function PureArtifact({
     mutate: mutateDocuments,
   } = useSWR<Array<Document>>(
     artifact.documentId !== 'init' && artifact.status !== 'streaming'
-      ? `/api/document?id=${artifact.documentId}`
+      ? `/api/document/versions?documentId=${artifact.documentId}`
       : null,
     fetcher,
   );
@@ -131,7 +133,7 @@ function PureArtifact({
       if (!artifact) return;
 
       mutate<Array<Document>>(
-        `/api/document?id=${artifact.documentId}`,
+        `/api/document/versions?documentId=${artifact.documentId}`,
         async (currentDocuments) => {
           if (!currentDocuments) return undefined;
 
@@ -154,20 +156,16 @@ function PureArtifact({
 
             setIsContentDirty(false);
 
-            const newDocument = {
-              ...currentDocument,
-              content: updatedContent,
-              createdAt: new Date(),
-            };
+            mutateDocuments();
 
-            return [...currentDocuments, newDocument];
+            return currentDocuments;
           }
           return currentDocuments;
         },
         { revalidate: false },
       );
     },
-    [artifact, mutate],
+    [artifact, mutate, mutateDocuments],
   );
 
   const debouncedHandleContentChange = useDebounceCallback(
@@ -322,6 +320,7 @@ function PureArtifact({
                   reload={reload}
                   isReadonly={isReadonly}
                   artifactStatus={artifact.status}
+                  userId={userId}
                 />
 
                 <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
@@ -339,6 +338,7 @@ function PureArtifact({
                     className="bg-background dark:bg-muted"
                     setMessages={setMessages}
                     selectedVisibilityType={selectedVisibilityType}
+                    userId={userId}
                   />
                 </form>
               </div>
@@ -419,7 +419,11 @@ function PureArtifact({
                 <div className="flex flex-col">
                   <div className="font-medium">{artifact.title}</div>
 
-                  {isContentDirty ? (
+                  {artifact.status === 'streaming' ? (
+                    <div className="text-sm text-muted-foreground">
+                      Updating...
+                    </div>
+                  ) : isContentDirty ? (
                     <div className="text-sm text-muted-foreground">
                       Saving changes...
                     </div>
