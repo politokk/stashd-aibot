@@ -69,10 +69,10 @@ test.describe
       expect(chain).toEqual(['http://localhost:3000/']);
     });
 
-    test('Allow navigating to /login as guest user', async ({ page }) => {
-      await page.goto('/login');
-      await page.waitForURL('/login');
-      await expect(page).toHaveURL('/login');
+    test('Allow navigating to /signin as guest user', async ({ page }) => {
+      await page.goto('/signin');
+      await page.waitForURL('/signin');
+      await expect(page).toHaveURL('/signin');
     });
 
     test('Allow navigating to /register as guest user', async ({ page }) => {
@@ -176,11 +176,11 @@ test.describe
       await expect(page).toHaveURL('/');
     });
 
-    test('Do not navigate to /login for non-guest users', async ({ page }) => {
+    test('Do not navigate to /signin for non-guest users', async ({ page }) => {
       await authPage.login(testUser.email, testUser.password);
       await page.waitForURL('/');
 
-      await page.goto('/login');
+      await page.goto('/signin');
       await expect(page).toHaveURL('/');
     });
   });
