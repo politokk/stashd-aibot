@@ -84,16 +84,42 @@ export function DocumentPreview({
     return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
   }
 
-  const document: Document | null = previewDocument
-    ? previewDocument
-    : artifact.status === 'streaming'
+  const document: Document | null = artifact.status === 'streaming'
       ? {
-          title: artifact.title,
-          kind: artifact.kind,
-          content: artifact.content,
           id: artifact.documentId,
-          createdAt: new Date(),
           userId: 'noop',
+          parentDocumentId: null,
+          title: artifact.title,
+          content: artifact.content,
+          contentRich: null,
+          coverImage: null,
+          icon: null,
+          isPublished: false,
+          isArchived: false,
+          textStyle: 'DEFAULT' as const,
+          smallText: false,
+          fullWidth: false,
+          lockPage: false,
+          toc: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          templateId: null,
+          type: 'document',
+          color: null,
+          bgColor: null,
+          contentVector: null,
+          aiSummary: null,
+          coverFit: 'cover',
+          backgroundGradient: null,
+          podId: null,
+          isFavorite: false,
+          order: 0,
+          status: null,
+          tags: [],
+          iconFilled: false,
+          isPublic: false,
+          shareToken: null,
+          kind: artifact.kind,
         }
       : null;
 
@@ -107,7 +133,7 @@ export function DocumentPreview({
         setArtifact={setArtifact}
       />
       <DocumentHeader
-        title={document.title}
+        title={document.title ?? ''}
         kind={document.kind as ArtifactKind}
         isStreaming={artifact.status === 'streaming'}
       />
@@ -272,7 +298,7 @@ const DocumentContent = ({ document }: { document: Document }) => {
         </div>
       ) : document.kind === 'image' ? (
         <ImageEditor
-          title={document.title}
+          title={document.title ?? ''}
           content={document.content ?? ''}
           isCurrentVersion={true}
           currentVersionIndex={0}
