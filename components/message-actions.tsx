@@ -21,11 +21,13 @@ export function PureMessageActions({
   message,
   vote,
   isLoading,
+  userId,
 }: {
   chatId: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
+  userId: string;
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
@@ -97,7 +99,9 @@ export function PureMessageActions({
                           {
                             chatId,
                             messageId: message.id,
+                            userId,
                             isUpvoted: true,
+                            createdAt: new Date(),
                           },
                         ];
                       },
@@ -150,7 +154,9 @@ export function PureMessageActions({
                           {
                             chatId,
                             messageId: message.id,
+                            userId,
                             isUpvoted: false,
+                            createdAt: new Date(),
                           },
                         ];
                       },
