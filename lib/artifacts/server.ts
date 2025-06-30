@@ -74,7 +74,7 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
       if (args.session?.user?.id) {
         await saveDocument({
           id: args.document.id,
-          title: args.document.title,
+          title: args.document.title || 'Untitled',
           content: draftContent,
           kind: config.kind,
           userId: args.session.user.id,
