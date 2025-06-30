@@ -17,6 +17,7 @@ interface MessagesProps {
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  userId: string;
 }
 
 function PureMessages({
@@ -27,6 +28,7 @@ function PureMessages({
   setMessages,
   reload,
   isReadonly,
+  userId,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -63,7 +65,8 @@ function PureMessages({
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
-        />
+          userId={userId}
+          />
       ))}
 
       {status === 'submitted' &&
