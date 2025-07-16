@@ -1,461 +1,389 @@
 'use client';
 
-import type { Message } from 'ai';
-import cx from 'classnames';
+import * as React from 'react';
+
+import * as ToolbarPrimitive from '@radix-ui/react-toolbar';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { type VariantProps, cva } from 'class-variance-authority';
+import { ChevronDown } from 'lucide-react';
+
 import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useTransform,
-} from 'framer-motion';
-import {
-  type Dispatch,
-  memo,
-  ReactNode,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import { useOnClickOutside } from 'usehooks-ts';
-import { nanoid } from 'nanoid';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
-import { artifactDefinitions, ArtifactKind } from './artifact';
-import { ArtifactToolbarItem } from './create-artifact';
-import { UseChatHelpers } from '@ai-sdk/react';
-
-type ToolProps = {
-  description: string;
-  icon: ReactNode;
-  selectedTool: string | null;
-  setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  isToolbarVisible?: boolean;
-  setIsToolbarVisible?: Dispatch<SetStateAction<boolean>>;
-  isAnimating: boolean;
-  append: UseChatHelpers['append'];
-  onClick: ({
-    appendMessage,
-  }: {
-    appendMessage: UseChatHelpers['append'];
-  }) => void;
-};
-
-const Tool = ({
-  description,
-  icon,
-  selectedTool,
-  setSelectedTool,
-  isToolbarVisible,
-  setIsToolbarVisible,
-  isAnimating,
-  append,
-  onClick,
-}: ToolProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    if (selectedTool !== description) {
-      setIsHovered(false);
-    }
-  }, [selectedTool, description]);
-
-  const handleSelect = () => {
-    if (!isToolbarVisible && setIsToolbarVisible) {
-      setIsToolbarVisible(true);
-      return;
-    }
-
-    if (!selectedTool) {
-      setIsHovered(true);
-      setSelectedTool(description);
-      return;
-    }
-
-    if (selectedTool !== description) {
-      setSelectedTool(description);
-    } else {
-      setSelectedTool(null);
-      onClick({ appendMessage: append });
-    }
-  };
-
+export function Toolbar({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToolbarPrimitive.Root>) {
   return (
-    <Tooltip open={isHovered && !isAnimating}>
-      <TooltipTrigger asChild>
-        <motion.div
-          className={cx('p-3 rounded-full', {
-            'bg-primary !text-primary-foreground': selectedTool === description,
-          })}
-          onHoverStart={() => {
-            setIsHovered(true);
-          }}
-          onHoverEnd={() => {
-            if (selectedTool !== description) setIsHovered(false);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              handleSelect();
-            }
-          }}
-          initial={{ scale: 1, opacity: 0 }}
-          animate={{ opacity: 1, transition: { delay: 0.1 } }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          exit={{
-            scale: 0.9,
-            opacity: 0,
-            transition: { duration: 0.1 },
-          }}
-          onClick={() => {
-            handleSelect();
-          }}
-        >
-          {selectedTool === description ? <ArrowUpIcon /> : icon}
-        </motion.div>
-      </TooltipTrigger>
-      <TooltipContent
-        side="left"
-        sideOffset={16}
-        className="bg-foreground text-background rounded-2xl p-3 px-4"
-      >
-        {description}
-      </TooltipContent>
-    </Tooltip>
+    <ToolbarPrimitive.Root
+      className={cn('relative flex items-center select-none', className)}
+      {...props}
+    />
   );
-};
+}
 
-const randomArr = [...Array(6)].map((x) => nanoid(5));
-
-const ReadingLevelSelector = ({
-  setSelectedTool,
-  append,
-  isAnimating,
-}: {
-  setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  isAnimating: boolean;
-  append: UseChatHelpers['append'];
-}) => {
-  const LEVELS = [
-    'Elementary',
-    'Middle School',
-    'Keep current level',
-    'High School',
-    'College',
-    'Graduate',
-  ];
-
-  const y = useMotionValue(-40 * 2);
-  const dragConstraints = 5 * 40 + 2;
-  const yToLevel = useTransform(y, [0, -dragConstraints], [0, 5]);
-
-  const [currentLevel, setCurrentLevel] = useState(2);
-  const [hasUserSelectedLevel, setHasUserSelectedLevel] =
-    useState<boolean>(false);
-
-  useEffect(() => {
-    const unsubscribe = yToLevel.on('change', (latest) => {
-      const level = Math.min(5, Math.max(0, Math.round(Math.abs(latest))));
-      setCurrentLevel(level);
-    });
-
-    return () => unsubscribe();
-  }, [yToLevel]);
-
+export function ToolbarToggleGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToolbarPrimitive.ToolbarToggleGroup>) {
   return (
-    <div className="relative flex flex-col justify-end items-center">
-      {randomArr.map((id) => (
-        <motion.div
-          key={id}
-          className="size-[40px] flex flex-row items-center justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="size-2 rounded-full bg-muted-foreground/40" />
-        </motion.div>
-      ))}
+    <ToolbarPrimitive.ToolbarToggleGroup
+      className={cn('flex items-center', className)}
+      {...props}
+    />
+  );
+}
 
-      <TooltipProvider>
-        <Tooltip open={!isAnimating}>
-          <TooltipTrigger asChild>
-            <motion.div
-              className={cx(
-                'absolute bg-background p-3 border rounded-full flex flex-row items-center',
-                {
-                  'bg-primary text-primary-foreground': currentLevel !== 2,
-                  'bg-background text-foreground': currentLevel === 2,
-                },
-              )}
-              style={{ y }}
-              drag="y"
-              dragElastic={0}
-              dragMomentum={false}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.1 }}
-              dragConstraints={{ top: -dragConstraints, bottom: 0 }}
-              onDragStart={() => {
-                setHasUserSelectedLevel(false);
-              }}
-              onDragEnd={() => {
-                if (currentLevel === 2) {
-                  setSelectedTool(null);
-                } else {
-                  setHasUserSelectedLevel(true);
-                }
-              }}
-              onClick={() => {
-                if (currentLevel !== 2 && hasUserSelectedLevel) {
-                  append({
-                    role: 'user',
-                    content: `Please adjust the reading level to ${LEVELS[currentLevel]} level.`,
-                  });
+export function ToolbarLink({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToolbarPrimitive.Link>) {
+  return (
+    <ToolbarPrimitive.Link
+      className={cn('font-medium underline underline-offset-4', className)}
+      {...props}
+    />
+  );
+}
 
-                  setSelectedTool(null);
-                }
-              }}
-            >
-              {currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent
-            side="left"
-            sideOffset={16}
-            className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
-          >
-            {LEVELS[currentLevel]}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+export function ToolbarSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToolbarPrimitive.Separator>) {
+  return (
+    <ToolbarPrimitive.Separator
+      className={cn('mx-2 my-1 w-px shrink-0 bg-border', className)}
+      {...props}
+    />
+  );
+}
+
+// From toggleVariants
+const toolbarButtonVariants = cva(
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[color,box-shadow] outline-none hover:bg-muted hover:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-checked:bg-accent aria-checked:text-accent-foreground aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  {
+    defaultVariants: {
+      size: 'default',
+      variant: 'default',
+    },
+    variants: {
+      size: {
+        default: 'h-9 min-w-9 px-2',
+        lg: 'h-10 min-w-10 px-2.5',
+        sm: 'h-8 min-w-8 px-1.5',
+      },
+      variant: {
+        default: 'bg-transparent',
+        outline:
+          'border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground',
+      },
+    },
+  }
+);
+
+const dropdownArrowVariants = cva(
+  cn(
+    'inline-flex items-center justify-center rounded-r-md text-sm font-medium text-foreground transition-colors disabled:pointer-events-none disabled:opacity-50'
+  ),
+  {
+    defaultVariants: {
+      size: 'sm',
+      variant: 'default',
+    },
+    variants: {
+      size: {
+        default: 'h-9 w-6',
+        lg: 'h-10 w-8',
+        sm: 'h-8 w-4',
+      },
+      variant: {
+        default:
+          'bg-transparent hover:bg-muted hover:text-muted-foreground aria-checked:bg-accent aria-checked:text-accent-foreground',
+        outline:
+          'border border-l-0 border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
+      },
+    },
+  }
+);
+
+type ToolbarButtonProps = {
+  isDropdown?: boolean;
+  pressed?: boolean;
+} & Omit<
+  React.ComponentPropsWithoutRef<typeof ToolbarToggleItem>,
+  'asChild' | 'value'
+> &
+  VariantProps<typeof toolbarButtonVariants>;
+
+export const ToolbarButton = withTooltip(function ToolbarButton({
+  children,
+  className,
+  isDropdown,
+  pressed,
+  size = 'sm',
+  variant,
+  ...props
+}: ToolbarButtonProps) {
+  return typeof pressed === 'boolean' ? (
+    <ToolbarToggleGroup disabled={props.disabled} value="single" type="single">
+      <ToolbarToggleItem
+        className={cn(
+          toolbarButtonVariants({
+            size,
+            variant,
+          }),
+          isDropdown && 'justify-between gap-1 pr-1',
+          className
+        )}
+        value={pressed ? 'single' : ''}
+        {...props}
+      >
+        {isDropdown ? (
+          <>
+            <div className="flex flex-1 items-center gap-2 whitespace-nowrap">
+              {children}
+            </div>
+            <div>
+              <ChevronDown
+                className="size-3.5 text-muted-foreground"
+                data-icon
+              />
+            </div>
+          </>
+        ) : (
+          children
+        )}
+      </ToolbarToggleItem>
+    </ToolbarToggleGroup>
+  ) : (
+    <ToolbarPrimitive.Button
+      className={cn(
+        toolbarButtonVariants({
+          size,
+          variant,
+        }),
+        isDropdown && 'pr-1',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </ToolbarPrimitive.Button>
+  );
+});
+
+export function ToolbarSplitButton({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof ToolbarButton>) {
+  return (
+    <ToolbarButton
+      className={cn('group flex gap-0 px-0 hover:bg-transparent', className)}
+      {...props}
+    />
+  );
+}
+
+type ToolbarSplitButtonPrimaryProps = Omit<
+  React.ComponentPropsWithoutRef<typeof ToolbarToggleItem>,
+  'value'
+> &
+  VariantProps<typeof toolbarButtonVariants>;
+
+export function ToolbarSplitButtonPrimary({
+  children,
+  className,
+  size = 'sm',
+  variant,
+  ...props
+}: ToolbarSplitButtonPrimaryProps) {
+  return (
+    <span
+      className={cn(
+        toolbarButtonVariants({
+          size,
+          variant,
+        }),
+        'rounded-r-none',
+        'group-data-[pressed=true]:bg-accent group-data-[pressed=true]:text-accent-foreground',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function ToolbarSplitButtonSecondary({
+  className,
+  size,
+  variant,
+  ...props
+}: React.ComponentPropsWithoutRef<'span'> &
+  VariantProps<typeof dropdownArrowVariants>) {
+  return (
+    <span
+      className={cn(
+        dropdownArrowVariants({
+          size,
+          variant,
+        }),
+        'group-data-[pressed=true]:bg-accent group-data-[pressed=true]:text-accent-foreground',
+        className
+      )}
+      onClick={(e) => e.stopPropagation()}
+      role="button"
+      {...props}
+    >
+      <ChevronDown className="size-3.5 text-muted-foreground" data-icon />
+    </span>
+  );
+}
+
+export function ToolbarToggleItem({
+  className,
+  size = 'sm',
+  variant,
+  ...props
+}: React.ComponentProps<typeof ToolbarPrimitive.ToggleItem> &
+  VariantProps<typeof toolbarButtonVariants>) {
+  return (
+    <ToolbarPrimitive.ToggleItem
+      className={cn(toolbarButtonVariants({ size, variant }), className)}
+      {...props}
+    />
+  );
+}
+
+export function ToolbarGroup({
+  children,
+  className,
+}: React.ComponentProps<'div'>) {
+  return (
+    <div
+      className={cn(
+        'group/toolbar-group',
+        'relative hidden has-[button]:flex',
+        className
+      )}
+    >
+      <div className="flex items-center">{children}</div>
+
+      <div className="mx-1.5 py-0.5 group-last/toolbar-group:hidden!">
+        <Separator orientation="vertical" />
+      </div>
     </div>
   );
-};
+}
 
-export const Tools = ({
-  isToolbarVisible,
-  selectedTool,
-  setSelectedTool,
-  append,
-  isAnimating,
-  setIsToolbarVisible,
-  tools,
-}: {
-  isToolbarVisible: boolean;
-  selectedTool: string | null;
-  setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  append: UseChatHelpers['append'];
-  isAnimating: boolean;
-  setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
-  tools: Array<ArtifactToolbarItem>;
-}) => {
-  const [primaryTool, ...secondaryTools] = tools;
+type TooltipProps<T extends React.ElementType> = {
+  tooltip?: React.ReactNode;
+  tooltipContentProps?: Omit<
+    React.ComponentPropsWithoutRef<typeof TooltipContent>,
+    'children'
+  >;
+  tooltipProps?: Omit<
+    React.ComponentPropsWithoutRef<typeof Tooltip>,
+    'children'
+  >;
+  tooltipTriggerProps?: React.ComponentPropsWithoutRef<typeof TooltipTrigger>;
+} & React.ComponentProps<T>;
 
-  return (
-    <motion.div
-      className="flex flex-col gap-1.5"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-    >
-      <AnimatePresence>
-        {isToolbarVisible &&
-          secondaryTools.map((secondaryTool) => (
-            <Tool
-              key={secondaryTool.description}
-              description={secondaryTool.description}
-              icon={secondaryTool.icon}
-              selectedTool={selectedTool}
-              setSelectedTool={setSelectedTool}
-              append={append}
-              isAnimating={isAnimating}
-              onClick={secondaryTool.onClick}
-            />
-          ))}
-      </AnimatePresence>
+function withTooltip<T extends React.ElementType>(Component: T) {
+  return function ExtendComponent({
+    tooltip,
+    tooltipContentProps,
+    tooltipProps,
+    tooltipTriggerProps,
+    ...props
+  }: TooltipProps<T>) {
+    const [mounted, setMounted] = React.useState(false);
 
-      <Tool
-        description={primaryTool.description}
-        icon={primaryTool.icon}
-        selectedTool={selectedTool}
-        setSelectedTool={setSelectedTool}
-        isToolbarVisible={isToolbarVisible}
-        setIsToolbarVisible={setIsToolbarVisible}
-        append={append}
-        isAnimating={isAnimating}
-        onClick={primaryTool.onClick}
-      />
-    </motion.div>
-  );
-};
+    React.useEffect(() => {
+      setMounted(true);
+    }, []);
 
-const PureToolbar = ({
-  isToolbarVisible,
-  setIsToolbarVisible,
-  append,
-  status,
-  stop,
-  setMessages,
-  artifactKind,
-}: {
-  isToolbarVisible: boolean;
-  setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
-  status: UseChatHelpers['status'];
-  append: UseChatHelpers['append'];
-  stop: UseChatHelpers['stop'];
-  setMessages: UseChatHelpers['setMessages'];
-  artifactKind: ArtifactKind;
-}) => {
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+    const component = <Component {...(props as React.ComponentProps<T>)} />;
 
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+    if (tooltip && mounted) {
+      return (
+        <Tooltip {...tooltipProps}>
+          <TooltipTrigger asChild {...tooltipTriggerProps}>
+            {component}
+          </TooltipTrigger>
 
-  useOnClickOutside(toolbarRef, () => {
-    setIsToolbarVisible(false);
-    setSelectedTool(null);
-  });
-
-  const startCloseTimer = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+          <TooltipContent {...tooltipContentProps}>{tooltip}</TooltipContent>
+        </Tooltip>
+      );
     }
 
-    timeoutRef.current = setTimeout(() => {
-      setSelectedTool(null);
-      setIsToolbarVisible(false);
-    }, 2000);
+    return component;
   };
+}
 
-  const cancelCloseTimer = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (status === 'streaming') {
-      setIsToolbarVisible(false);
-    }
-  }, [status, setIsToolbarVisible]);
-
-  const artifactDefinition = artifactDefinitions.find(
-    (definition) => definition.kind === artifactKind,
-  );
-
-  if (!artifactDefinition) {
-    throw new Error('Artifact definition not found!');
-  }
-
-  const toolsByArtifactKind = artifactDefinition.toolbar;
-
-  if (toolsByArtifactKind.length === 0) {
-    return null;
-  }
-
+function TooltipContent({
+  children,
+  className,
+  // CHANGE
+  sideOffset = 4,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   return (
-    <TooltipProvider delayDuration={0}>
-      <motion.div
-        className="cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
-        initial={{ opacity: 0, y: -20, scale: 1 }}
-        animate={
-          isToolbarVisible
-            ? selectedTool === 'adjust-reading-level'
-              ? {
-                  opacity: 1,
-                  y: 0,
-                  height: 6 * 43,
-                  transition: { delay: 0 },
-                  scale: 0.95,
-                }
-              : {
-                  opacity: 1,
-                  y: 0,
-                  height: toolsByArtifactKind.length * 50,
-                  transition: { delay: 0 },
-                  scale: 1,
-                }
-            : { opacity: 1, y: 0, height: 54, transition: { delay: 0 } }
-        }
-        exit={{ opacity: 0, y: -20, transition: { duration: 0.1 } }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        onHoverStart={() => {
-          if (status === 'streaming') return;
-
-          cancelCloseTimer();
-          setIsToolbarVisible(true);
-        }}
-        onHoverEnd={() => {
-          if (status === 'streaming') return;
-
-          startCloseTimer();
-        }}
-        onAnimationStart={() => {
-          setIsAnimating(true);
-        }}
-        onAnimationComplete={() => {
-          setIsAnimating(false);
-        }}
-        ref={toolbarRef}
-      >
-        {status === 'streaming' ? (
-          <motion.div
-            key="stop-icon"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.4 }}
-            exit={{ scale: 1 }}
-            className="p-3"
-            onClick={() => {
-              stop();
-              setMessages((messages) => messages);
-            }}
-          >
-            <StopIcon />
-          </motion.div>
-        ) : selectedTool === 'adjust-reading-level' ? (
-          <ReadingLevelSelector
-            key="reading-level-selector"
-            append={append}
-            setSelectedTool={setSelectedTool}
-            isAnimating={isAnimating}
-          />
-        ) : (
-          <Tools
-            key="tools"
-            append={append}
-            isAnimating={isAnimating}
-            isToolbarVisible={isToolbarVisible}
-            selectedTool={selectedTool}
-            setIsToolbarVisible={setIsToolbarVisible}
-            setSelectedTool={setSelectedTool}
-            tools={toolsByArtifactKind}
-          />
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        className={cn(
+          'z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md bg-primary px-3 py-1.5 text-xs text-balance text-primary-foreground',
+          className
         )}
-      </motion.div>
-    </TooltipProvider>
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        {...props}
+      >
+        {children}
+        {/* CHANGE */}
+        {/* <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-primary fill-primary" /> */}
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
   );
-};
+}
 
-export const Toolbar = memo(PureToolbar, (prevProps, nextProps) => {
-  if (prevProps.status !== nextProps.status) return false;
-  if (prevProps.isToolbarVisible !== nextProps.isToolbarVisible) return false;
-  if (prevProps.artifactKind !== nextProps.artifactKind) return false;
+export function ToolbarMenuGroup({
+  children,
+  className,
+  label,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuRadioGroup> & { label?: string }) {
+  return (
+    <>
+      <DropdownMenuSeparator
+        className={cn(
+          'hidden',
+          'mb-0 shrink-0 peer-has-[[role=menuitem]]/menu-group:block peer-has-[[role=menuitemradio]]/menu-group:block peer-has-[[role=option]]/menu-group:block'
+        )}
+      />
 
-  return true;
-});
+      <DropdownMenuRadioGroup
+        {...props}
+        className={cn(
+          'hidden',
+          'peer/menu-group group/menu-group my-1.5 has-[[role=menuitem]]:block has-[[role=menuitemradio]]:block has-[[role=option]]:block',
+          className
+        )}
+      >
+        {label && (
+          <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground select-none">
+            {label}
+          </DropdownMenuLabel>
+        )}
+        {children}
+      </DropdownMenuRadioGroup>
+    </>
+  );
+}

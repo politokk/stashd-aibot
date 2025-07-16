@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PlusIcon, VercelIcon } from './icons';
 import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { type VisibilityType, VisibilitySelector } from './visibility-selector';
 import type { Session } from 'next-auth';
 
@@ -37,6 +37,7 @@ function PureChatHeader({
       <SidebarToggle />
 
       {(!open || windowWidth < 768) && (
+          <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -51,8 +52,9 @@ function PureChatHeader({
               <span className="md:sr-only">New Chat</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>New Chat</TooltipContent>
-        </Tooltip>
+            <TooltipContent>New Chat</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {!isReadonly && (

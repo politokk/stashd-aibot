@@ -16,7 +16,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -38,6 +38,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 Chatbot
               </span>
             </Link>
+            <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -53,8 +54,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <PlusIcon />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent align="end">New Chat</TooltipContent>
-            </Tooltip>
+                <TooltipContent align="end">New Chat</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </SidebarMenu>
       </SidebarHeader>

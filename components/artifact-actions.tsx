@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { artifactDefinitions, UIArtifact } from './artifact';
 import { Dispatch, memo, SetStateAction, useState } from 'react';
 import { ArtifactActionContext } from './create-artifact';
@@ -48,6 +48,7 @@ function PureArtifactActions({
   return (
     <div className="flex flex-row gap-1">
       {artifactDefinition.actions.map((action) => (
+        <TooltipProvider>
         <Tooltip key={action.description}>
           <TooltipTrigger asChild>
             <Button
@@ -79,8 +80,9 @@ function PureArtifactActions({
               {action.label}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{action.description}</TooltipContent>
-        </Tooltip>
+            <TooltipContent>{action.description}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ))}
     </div>
   );
